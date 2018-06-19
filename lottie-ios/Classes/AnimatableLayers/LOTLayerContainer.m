@@ -14,6 +14,7 @@
 #import "LOTHelpers.h"
 #import "LOTMaskContainer.h"
 #import "LOTAsset.h"
+#import "LOTDynamicAssets.h"
 
 #if TARGET_OS_IPHONE || TARGET_OS_SIMULATOR
 #import "LOTCacheProvider.h"
@@ -142,30 +143,36 @@
 - (void)_setImageForAsset:(LOTAsset *)asset {
   if (asset.imageName) {
     UIImage *image;
-    if (asset.rootDirectory.length > 0) {
-      NSString *rootDirectory  = asset.rootDirectory;
-      if (asset.imageDirectory.length > 0) {
-        rootDirectory = [rootDirectory stringByAppendingPathComponent:asset.imageDirectory];
+      
+      LOTDynamicAssets *imageAssets = [LOTDynamicAssets sharedInstance];
+      image = [imageAssets getImageAssetNamed:asset.imageName];
+      
+      if (!image) {
+          if (asset.rootDirectory.length > 0) {
+              NSString *rootDirectory  = asset.rootDirectory;
+              if (asset.imageDirectory.length > 0) {
+                  rootDirectory = [rootDirectory stringByAppendingPathComponent:asset.imageDirectory];
+              }
+              NSString *imagePath = [rootDirectory stringByAppendingPathComponent:asset.imageName];
+              
+              id<LOTImageCache> imageCache = [LOTCacheProvider imageCache];
+              if (imageCache) {
+                  image = [imageCache imageForKey:imagePath];
+                  if (!image) {
+                      image = [UIImage imageWithContentsOfFile:imagePath];
+                      [imageCache setImage:image forKey:imagePath];
+                  }
+              } else {
+                  image = [UIImage imageWithContentsOfFile:imagePath];
+              }
+          } else {
+              NSString *imagePath = [asset.assetBundle pathForResource:asset.imageName ofType:nil];
+              image = [UIImage imageWithContentsOfFile:imagePath];
+              if(!image) {
+                  image = [UIImage imageNamed:asset.imageName inBundle: asset.assetBundle compatibleWithTraitCollection:nil];
+              }
+          }
       }
-      NSString *imagePath = [rootDirectory stringByAppendingPathComponent:asset.imageName];
-        
-      id<LOTImageCache> imageCache = [LOTCacheProvider imageCache];
-      if (imageCache) {
-        image = [imageCache imageForKey:imagePath];
-        if (!image) {
-          image = [UIImage imageWithContentsOfFile:imagePath];
-          [imageCache setImage:image forKey:imagePath];
-        }
-      } else {
-        image = [UIImage imageWithContentsOfFile:imagePath];
-      }
-    } else {
-        NSString *imagePath = [asset.assetBundle pathForResource:asset.imageName ofType:nil];
-        image = [UIImage imageWithContentsOfFile:imagePath];
-        if(!image) {
-            image = [UIImage imageNamed:asset.imageName inBundle: asset.assetBundle compatibleWithTraitCollection:nil];
-        }
-    }
     
     if (image) {
       _wrapperLayer.contents = (__bridge id _Nullable)(image.CGImage);

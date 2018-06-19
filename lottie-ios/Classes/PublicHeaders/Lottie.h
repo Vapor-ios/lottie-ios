@@ -40,5 +40,6 @@ FOUNDATION_EXPORT const unsigned char LottieVersionString[];
 #import "LOTInterpolatorCallback.h"
 #import "LOTValueCallback.h"
 #import "LOTValueDelegate.h"
+#import "LOTDynamicAssets.h"
 
 #endif /* Lottie_h */
